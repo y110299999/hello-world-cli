@@ -2,9 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 
 const APP_URL = 'hello-world://open'
 const OPEN_TIMEOUT_MS = 1000
-const DEV_DISTRIBUTION_ORIGIN = 'http://localhost:1420'
-const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]', '::1'])
-const WINDOWS_INSTALLER_NAME = 'HelloWorld-windows-x64.msi'
 
 type InstallCommand = {
   command: string
@@ -15,51 +12,21 @@ function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, '')
 }
 
-function getEnvUrl(value: unknown) {
-  return typeof value === 'string' && value.trim()
-    ? trimTrailingSlash(value.trim())
-    : undefined
-}
-
-function getDistributionOrigin() {
-  const configuredOrigin = getEnvUrl(
-    import.meta.env.VITE_HELLO_WORLD_DISTRIBUTION_ORIGIN
-  )
-
-  if (configuredOrigin) {
-    return configuredOrigin
-  }
-
-  if (
-    window.location.protocol === 'file:' ||
-    !window.location.origin ||
-    window.location.origin === 'null' ||
-    LOCAL_HOSTNAMES.has(window.location.hostname)
-  ) {
-    return DEV_DISTRIBUTION_ORIGIN
-  }
-
-  return trimTrailingSlash(window.location.origin)
-}
-
-function getDistributionUrls() {
-  const installScriptUrl = getEnvUrl(
-    import.meta.env.VITE_HELLO_WORLD_INSTALL_SCRIPT_URL
-  )
-  const downloadBaseUrl = getEnvUrl(
-    import.meta.env.VITE_HELLO_WORLD_DOWNLOAD_BASE_URL
-  )
-  const origin = getDistributionOrigin()
-
-  return {
-    installScriptUrl: installScriptUrl || `${origin}/install.sh`,
-    downloadBaseUrl: downloadBaseUrl || `${origin}/downloads`,
-  }
-}
-
-function quotePowerShellString(value: string) {
-  return `'${value.replace(/'/g, "''")}'`
-}
+const DISTRIBUTION_ORIGIN = trimTrailingSlash(
+  import.meta.env.VITE_HELLO_WORLD_DISTRIBUTION_ORIGIN
+)
+const INSTALL_SCRIPT_URL = trimTrailingSlash(
+  import.meta.env.VITE_HELLO_WORLD_INSTALL_SCRIPT_URL ||
+    `${DISTRIBUTION_ORIGIN}/install.sh`
+)
+const WINDOWS_INSTALL_SCRIPT_URL = trimTrailingSlash(
+  import.meta.env.VITE_HELLO_WORLD_WINDOWS_INSTALL_SCRIPT_URL ||
+    `${DISTRIBUTION_ORIGIN}/install.ps1`
+)
+const DOWNLOAD_BASE_URL = trimTrailingSlash(
+  import.meta.env.VITE_HELLO_WORLD_DOWNLOAD_BASE_URL ||
+    `${DISTRIBUTION_ORIGIN}/downloads`
+)
 
 function isWindowsClient() {
   if (typeof navigator === 'undefined') {
@@ -79,22 +46,16 @@ function isWindowsClient() {
 }
 
 function getInstallCommand(): InstallCommand {
-  const { installScriptUrl, downloadBaseUrl } = getDistributionUrls()
-
   if (isWindowsClient()) {
-    const installerUrl = quotePowerShellString(
-      `${downloadBaseUrl}/${WINDOWS_INSTALLER_NAME}`
-    )
-
     return {
       description: '在 PowerShell 运行安装命令后再试。',
-      command: `$msi = Join-Path $env:TEMP '${WINDOWS_INSTALLER_NAME}'; Invoke-WebRequest -Uri ${installerUrl} -OutFile $msi; Start-Process msiexec.exe -Wait -ArgumentList @('/i', $msi)`,
+      command: `powershell -c "irm ${WINDOWS_INSTALL_SCRIPT_URL} | iex"`,
     }
   }
 
   return {
     description: '在终端运行安装命令后再试。',
-    command: `curl -fsSL ${installScriptUrl} | bash -s -- ${downloadBaseUrl}`,
+    command: `curl -fsSL ${INSTALL_SCRIPT_URL} | bash -s -- ${DOWNLOAD_BASE_URL}`,
   }
 }
 

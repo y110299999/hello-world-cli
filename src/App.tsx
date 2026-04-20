@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 const APP_URL = 'hello-world://open'
-const OPEN_TIMEOUT_MS = 1800
+const OPEN_TIMEOUT_MS = 1000
 
 type Platform = 'macos' | 'windows' | 'linux' | 'unknown'
 type OpenState = 'idle' | 'trying' | 'fallback'
@@ -89,11 +89,13 @@ export default function App() {
       }
     }
 
+    window.addEventListener('blur', markOpened)
     window.addEventListener('pagehide', markOpened)
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
       clearOpenTimeout()
+      window.removeEventListener('blur', markOpened)
       window.removeEventListener('pagehide', markOpened)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
@@ -110,7 +112,13 @@ export default function App() {
     window.location.href = APP_URL
 
     timeoutRef.current = window.setTimeout(() => {
-      if (!attemptRef.current || document.visibilityState === 'hidden') return
+      if (
+        !attemptRef.current ||
+        !document.hasFocus() ||
+        document.visibilityState === 'hidden'
+      ) {
+        return
+      }
 
       attemptRef.current = false
       setOpenState('fallback')
@@ -145,7 +153,8 @@ export default function App() {
             font: 'inherit',
             opacity: openState === 'trying' ? 0.7 : 1,
           }}
-        > 进入 Hello World
+        >
+          进入 Hello World
         </button>
 
         {openState === 'fallback' ? (
@@ -153,9 +162,7 @@ export default function App() {
             <p style={{ margin: '0 0 8px' }}>
               没有检测到 Hello World 被打开。
             </p>
-            <p style={{ margin: '0 0 8px' }}>
-              如果浏览器正在询问，请选择打开；如果还没安装，请下载安装包。
-            </p>
+        
             <p style={{ margin: '0 0 14px' }}>
               当前系统：{PLATFORM_LABELS[platform]}。请选择对应安装包。
             </p>
@@ -187,7 +194,6 @@ export default function App() {
                 </a>
               ))}
             </div>
-          
           </div>
         ) : null}
       </section>

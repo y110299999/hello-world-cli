@@ -12,6 +12,7 @@
     "build:hello-world:mac": "pnpm -C apps/hello-world run build:mac",
     "build:hello-world:win": "pnpm -C apps/hello-world run build:win",
     "build:hello-world:linux": "pnpm -C apps/hello-world run build:linux",
+    "prepare:cli": "bash scripts/prepare-cli-distribution.sh",
     "clean:tauri": "cargo clean --manifest-path apps/hello-world/src-tauri/Cargo.toml"
   },
   "dependencies": {

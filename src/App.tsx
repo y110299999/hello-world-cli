@@ -3,69 +3,28 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 const APP_URL = 'hello-world://open'
 const OPEN_TIMEOUT_MS = 1000
 
-type Platform = 'macos' | 'windows' | 'linux' | 'unknown'
+function trimTrailingSlash(value: string) {
+  return value.replace(/\/$/, '')
+}
+
+
+
+function getInstallCommand() {
+  const installScriptUrl = import.meta.env.VITE_HELLO_WORLD_INSTALL_SCRIPT_URL
+  const downloadBaseUrl = import.meta.env.VITE_HELLO_WORLD_DOWNLOAD_BASE_URL
+  const origin = trimTrailingSlash(import.meta.env.VITE_HELLO_WORLD_DISTRIBUTION_ORIGIN )
+
+  return `curl -fsSL ${installScriptUrl || `${trimTrailingSlash(origin)}/install.sh`} | bash -s -- ${trimTrailingSlash(downloadBaseUrl || `${origin}/downloads`)}`
+}
+
 type OpenState = 'idle' | 'trying' | 'fallback'
-
-type Installer = {
-  platform: Exclude<Platform, 'unknown'>
-  label: string
-  href: string
-  hint: string
-}
-
-const INSTALLERS: Installer[] = [
-  {
-    platform: 'macos',
-    label: '下载 macOS 版',
-    href: '/downloads/HelloTauri-macos.dmg',
-    hint: '下载 DMG 后拖到 Applications。',
-  },
-  {
-    platform: 'windows',
-    label: '下载 Windows 版',
-    href: '/downloads/HelloTauri-windows-x64.msi',
-    hint: '下载 MSI 后按安装向导完成安装。',
-  },
-  {
-    platform: 'linux',
-    label: '下载 Linux 版',
-    href: '/downloads/HelloTauri-linux-x64.AppImage',
-    hint: '下载 AppImage 后添加执行权限再打开。',
-  },
-]
-
-const PLATFORM_LABELS: Record<Platform, string> = {
-  macos: 'macOS',
-  windows: 'Windows',
-  linux: 'Linux',
-  unknown: '未知系统',
-}
-
-function detectPlatform(): Platform {
-  const platform = `${navigator.platform} ${navigator.userAgent}`.toLowerCase()
-
-  if (platform.includes('mac')) return 'macos'
-  if (platform.includes('win')) return 'windows'
-  if (platform.includes('linux') || platform.includes('x11')) return 'linux'
-
-  return 'unknown'
-}
-
-function sortInstallers(platform: Platform) {
-  if (platform === 'unknown') return INSTALLERS
-
-  return [
-    ...INSTALLERS.filter((installer) => installer.platform === platform),
-    ...INSTALLERS.filter((installer) => installer.platform !== platform),
-  ]
-}
 
 export default function App() {
   const [openState, setOpenState] = useState<OpenState>('idle')
   const timeoutRef = useRef<number | undefined>(undefined)
   const attemptRef = useRef(false)
-  const platform = useMemo(detectPlatform, [])
-  const installers = useMemo(() => sortInstallers(platform), [platform])
+  const appUrl = useMemo(() => (import.meta.env.VITE_HELLO_WORLD_DISTRIBUTION_ORIGIN ), [])
+  const installCommand = useMemo(getInstallCommand, [])
 
   useEffect(() => {
     const clearOpenTimeout = () => {
@@ -162,38 +121,28 @@ export default function App() {
             <p style={{ margin: '0 0 8px' }}>
               没有检测到 Hello World 被打开。
             </p>
-        
+
             <p style={{ margin: '0 0 14px' }}>
-              当前系统：{PLATFORM_LABELS[platform]}。请选择对应安装包。
+              在终端运行安装命令后再试。
             </p>
-            <div
+            <code
               style={{
-                display: 'grid',
-                gap: 10,
-                justifyItems: 'center',
+                display: 'inline-block',
+                maxWidth: 'calc(100vw - 32px)',
+                padding: '10px 12px',
+                border: '1px solid #111',
+                borderRadius: 8,
+                background: '#f7f7f7',
+                color: '#111',
+                fontFamily:
+                  'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace',
+                fontSize: 14,
+                whiteSpace: 'normal',
+                wordBreak: 'break-all',
               }}
             >
-              {installers.map((installer) => (
-                <a
-                  key={installer.href}
-                  href={installer.href}
-                  download
-                  title={installer.hint}
-                  style={{
-                    display: 'inline-block',
-                    minWidth: 220,
-                    padding: '10px 16px',
-                    border: '1px solid #111',
-                    borderRadius: 8,
-                    color: '#fff',
-                    background: '#111',
-                    textDecoration: 'none',
-                  }}
-                >
-                  {installer.label}
-                </a>
-              ))}
-            </div>
+              {installCommand}
+            </code>
           </div>
         ) : null}
       </section>

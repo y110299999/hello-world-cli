@@ -1,291 +1,140 @@
 # 打包流程
 
-这份文档只写除自定义协议以外的打包逻辑。自定义协议见 `docs/custom-protocol.md`。
-
-## 当前项目关系
-
-根目录是首页项目：
-
-```text
-src/
-index.html
-vite.config.ts
-package.json
-```
-
-Hello World 桌面程序在：
-
-```text
-apps/hello-world/
-```
-
-真正被 Tauri 打包的是 `apps/hello-world`，不是根目录首页。
+CLI 分发仍然需要打包逻辑。`apps/hello-world/public/install.sh` 只负责下载安装包，安装包本身需要先由 Tauri 打出来，再放到里层应用站点的 `/downloads` 目录。
 
 ## 打包入口
 
-从根目录打包 Hello World：
+从根目录打包当前平台：
 
 ```bash
-pnpm run build
+pnpm run build:hello-world
 ```
 
-根目录脚本会转到子项目：
-
-```json
-{
-  "build": "pnpm -C apps/hello-world run build"
-}
-```
-
-子项目执行：
-
-```json
-{
-  "build": "tauri build"
-}
-```
-
-所以完整入口是：
+实际执行链路：
 
 ```text
-pnpm run build
+pnpm run build:hello-world
   -> pnpm -C apps/hello-world run build
   -> tauri build
 ```
 
-## 打包流水线
+单独打包平台目标：
 
-执行 `tauri build` 后，Tauri 会读取：
-
-```text
-apps/hello-world/src-tauri/tauri.conf.json
+```bash
+pnpm run build:hello-world:mac
+pnpm run build:hello-world:win
+pnpm run build:hello-world:linux
+pnpm run build:hello-world:linux:arm64
 ```
 
-其中构建配置是：
+对应子项目命令：
+
+```bash
+tauri build
+tauri build --target x86_64-pc-windows-gnu
+tauri build --target x86_64-unknown-linux-gnu
+tauri build --target aarch64-unknown-linux-gnu
+```
+
+Windows 和 Linux 交叉编译需要对应 Rust target、系统依赖和打包工具链；环境没装齐时会失败，这是构建环境问题，不是安装脚本问题。
+
+## 打包流水线
+
+Tauri 打包前会先构建桌面 App 的前端页面：
 
 ```json
 {
-  "build": {
-    "beforeBuildCommand": "pnpm run build:web",
-    "frontendDist": "../dist"
-  }
+  "beforeBuildCommand": "pnpm run build:web",
+  "frontendDist": "../dist"
 }
+```
+
+配置位置：
+
+```text
+apps/hello-world/src-tauri/tauri.conf.json
 ```
 
 实际流程：
 
 ```text
 tauri build
-  -> 执行 beforeBuildCommand
   -> pnpm run build:web
   -> vite build
   -> 生成 apps/hello-world/dist
   -> Cargo 编译 Rust/Tauri
   -> 读取 src-tauri/tauri.conf.json
-  -> 读取图标和窗口配置
-  -> 生成桌面应用和安装包
+  -> 生成当前平台安装包
 ```
-
-前端页面构建命令：
-
-```bash
-pnpm -C apps/hello-world run build:web
-```
-
-它会输出：
-
-```text
-apps/hello-world/dist/
-```
-
-Tauri 通过 `frontendDist` 把这个目录打进桌面程序：
-
-```json
-{
-  "frontendDist": "../dist"
-}
-```
-
-这里的路径是相对于 `apps/hello-world/src-tauri` 来算的，所以 `../dist` 指向：
-
-```text
-apps/hello-world/dist
-```
-
-## 桌面窗口配置
-
-窗口配置在：
-
-```text
-apps/hello-world/src-tauri/tauri.conf.json
-```
-
-当前窗口：
-
-```json
-{
-  "title": "Hello Tauri",
-  "width": 800,
-  "height": 600
-}
-```
-
-这决定应用启动后的窗口标题和初始尺寸。
-
-## 图标配置
-
-当前只保留桌面打包需要的图标：
-
-```json
-{
-  "icon": [
-    "icons/32x32.png",
-    "icons/128x128.png",
-    "icons/128x128@2x.png",
-    "icons/icon.icns",
-    "icons/icon.ico"
-  ]
-}
-```
-
-对应文件在：
-
-```text
-apps/hello-world/src-tauri/icons/
-```
-
-含义：
-
-- `icon.icns`：macOS 使用。
-- `icon.ico`：Windows 使用。
-- `32x32.png`、`128x128.png`、`128x128@2x.png`：通用 PNG 图标。
-
-如果重新生成图标，可以使用 Tauri CLI：
-
-```bash
-pnpm -C apps/hello-world exec tauri icon ../../app-icon.svg
-```
-
-注意：`tauri icon` 可能会重新生成 iOS、Android、Windows Store 等额外图标。当前项目只保留桌面打包需要的图标。
-
-## 平台打包命令
-
-当前根目录脚本：
-
-```bash
-pnpm run build:hello-world
-pnpm run build:hello-world:mac
-pnpm run build:hello-world:win
-pnpm run build:hello-world:linux
-```
-
-对应子项目脚本：
-
-```bash
-tauri build
-tauri build --target x86_64-pc-windows-gnu
-tauri build --target x86_64-unknown-linux-gnu
-```
-
-macOS 本机可以直接打 macOS 包。Windows/Linux 目标需要对应 Rust target、系统依赖和打包工具链；如果环境没装齐，命令会失败，这是交叉编译环境问题，不是项目源码问题。
 
 ## 产物位置
 
-前端产物：
-
-```text
-apps/hello-world/dist/
-```
-
-Rust/Tauri 构建目录：
-
-```text
-apps/hello-world/src-tauri/target/
-```
-
-macOS `.app` 通常在：
-
-```text
-apps/hello-world/src-tauri/target/release/bundle/macos/
-```
-
-macOS `.dmg` 通常在：
+macOS DMG 通常在：
 
 ```text
 apps/hello-world/src-tauri/target/release/bundle/dmg/
 ```
 
-主程序二进制在：
+Windows MSI 通常在：
 
 ```text
-apps/hello-world/src-tauri/target/release/hello-tauri
+apps/hello-world/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/
 ```
 
-## target 目录是什么
-
-`target` 是 Rust/Cargo 的构建输出目录，也被 Tauri 用来放打包产物。
-
-里面通常包括：
+Linux AppImage 通常在：
 
 ```text
-target/release/deps/         编译好的依赖缓存
-target/release/build/        build script 输出
-target/release/bundle/       Tauri 打包结果
-target/release/hello-tauri   最终二进制
+apps/hello-world/src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/
 ```
 
-它可以很大，因为 Tauri 会编译窗口、WebView、系统 API、插件等 Rust 依赖。
+## CLI 分发目录
 
-可以删除：
+`pnpm run prepare:cli` 会把已存在的安装包复制到：
+
+```text
+apps/hello-world/dist/downloads/HelloWorld-macos.dmg
+apps/hello-world/dist/downloads/HelloWorld-windows-x64.msi
+apps/hello-world/dist/downloads/HelloWorld-linux-x64.AppImage
+apps/hello-world/dist/downloads/HelloWorld-linux-arm64.AppImage
+```
+
+没有生成的平台会跳过。这样可以在不同系统或 CI job 中分别打包，再统一发布 `dist`。
+
+## 根站点构建
+
+根站点只负责首页：
+
+```bash
+pnpm run build:home
+```
+
+构建后会生成：
+
+```text
+dist/index.html
+```
+
+## 完整发布顺序
+
+```text
+pnpm run build:home
+pnpm run build:hello-world
+pnpm run prepare:cli
+部署 dist
+```
+
+根目录默认构建命令会执行这三步：
+
+```bash
+pnpm run build
+```
+
+## 清理
+
+Tauri/Rust 构建缓存可以删除：
 
 ```bash
 pnpm run clean:tauri
 ```
 
-删除后不影响源码，下次打包会重新生成，只是第一次会慢。
-
-## gen 目录是什么
-
-`apps/hello-world/src-tauri/gen` 是 Tauri 生成目录，里面通常是 schema 和权限辅助文件，例如：
-
-```text
-schemas/
-```
-
-它不是手写源码，已经在 `.gitignore` 中忽略。删除后，Tauri 构建会按需重新生成。
-
-## 清理命令
-
-清理 Rust/Tauri 构建缓存：
-
-```bash
-pnpm run clean:tauri
-```
-
-如果只清理子项目：
-
-```bash
-pnpm -C apps/hello-world run clean
-```
-
-手动删除前端构建产物：
-
-```bash
-rm -rf dist apps/hello-world/dist
-```
-
-## 最小打包理解
-
-一句话：
-
-```text
-apps/hello-world/src 先被 Vite 构建成 dist，再由 Tauri 把 dist、Rust 程序、图标、配置一起打成桌面应用。
-```
-
-最关键的三处：
-
-```text
-apps/hello-world/package.json
-apps/hello-world/src-tauri/tauri.conf.json
-apps/hello-world/src-tauri/src/main.rs
-```
+删除后不影响源码，下次打包会重新生成。

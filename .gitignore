@@ -1,8 +1,11 @@
 .DS_Store
 node_modules
+.env
+.env.local
 .pnpm-store
 dist
 apps/*/dist
+apps/*/public/downloads
 apps/*/src-tauri/gen
 src-tauri/target
 apps/*/src-tauri/target

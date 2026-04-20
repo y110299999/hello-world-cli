@@ -2,21 +2,19 @@
 
 这份文档只写 `hello-world://` 自定义协议。其他打包流程见 `docs/packaging.md`。
 
+注意：当前外层首页的“进入 Hello World”按钮会先打开里层 Hello World 应用站点，本地是 `http://localhost:1420`。`hello-world://` 仍然由桌面 App 注册，安装后可以用来从浏览器、命令行或系统入口唤起桌面程序。
+
 ## 当前目标
 
-首页点击：
-
-```text
-进入 Hello World
-```
-
-实际打开：
+协议地址：
 
 ```text
 hello-world://open
 ```
 
 如果本机已经安装并注册了 Hello World 桌面程序，系统会把这个地址交给桌面程序处理。
+
+当前外层首页不直接跳这个协议，它会打开里层应用站点。协议仍然可以被浏览器、命令行、桌面快捷入口或其他系统入口调用。
 
 ## 使用的技术
 
@@ -42,24 +40,6 @@ CFBundleURLSchemes = hello-world
 Windows 和 Linux 也走平台自己的协议注册机制，由 Tauri 打包器根据配置生成对应元数据。
 
 ## 代码位置
-
-首页入口在：
-
-```text
-src/App.tsx
-```
-
-当前协议地址：
-
-```tsx
-const APP_URL = 'hello-world://open'
-```
-
-点击按钮后执行：
-
-```tsx
-window.location.href = APP_URL
-```
 
 Tauri 协议配置在：
 
@@ -116,7 +96,7 @@ tauri-plugin-deep-link = "2"
 
 如果从零添加自定义协议，需要做四步。
 
-第一步，在首页里决定协议地址：
+第一步，在调用方里决定协议地址：
 
 ```tsx
 const APP_URL = 'hello-world://open'
@@ -148,14 +128,14 @@ const APP_URL = 'hello-world://open'
 tauri-plugin-deep-link = "2"
 ```
 
-这四处必须保持一致。首页用的是 `hello-world://open`，Tauri 注册的 scheme 就必须是 `hello-world`。
+这四处必须保持一致。调用方用的是 `hello-world://open`，Tauri 注册的 scheme 就必须是 `hello-world`。
 
 ## 唤起流程
 
 完整链路：
 
 ```text
-用户点击首页按钮
+用户或其他系统入口打开协议地址
   -> 浏览器跳转 hello-world://open
   -> 操作系统查找 hello-world 协议处理程序
   -> 找到 Hello World 桌面应用
@@ -164,14 +144,14 @@ tauri-plugin-deep-link = "2"
 
 如果系统没有找到协议处理程序，浏览器通常不会打开应用。不同浏览器表现不同，有的会弹提示，有的会静默失败。
 
-## 首页如何判断失败
+## 浏览器兜底
 
-浏览器不能直接问系统“有没有安装 Hello World”。当前使用的是唤起结果判断：
+浏览器不能直接问系统“有没有安装 Hello World”。如果某个页面直接跳 `hello-world://open`，通常只能用页面是否隐藏、是否失焦这类信号做兜底判断：
 
 ```text
 跳转 hello-world://open
   -> 如果页面隐藏或 pagehide，认为唤起成功
-  -> 如果 1800ms 后页面还在，认为没有检测到打开成功
+  -> 如果超时后页面还在，认为没有检测到打开成功
   -> 显示下载兜底
 ```
 
@@ -190,7 +170,7 @@ trying
 fallback
 ```
 
-这是浏览器里处理自定义协议唤起时常见的兜底方式。它不是系统级安装检测，也不能区分“没安装”和“浏览器确认框还没点”。所以页面文案只说没有检测到打开成功，不直接说本机没有安装。
+这是浏览器里处理自定义协议唤起时常见的兜底方式。它不是系统级安装检测，也不能区分“没安装”和“浏览器确认框还没点”。所以文案应该只说没有检测到打开成功，不直接说本机没有安装。
 
 ## 验证方式
 
@@ -203,7 +183,7 @@ pnpm -C apps/hello-world exec tauri build --bundles app --ci
 再检查 `Info.plist`：
 
 ```bash
-plutil -p apps/hello-world/src-tauri/target/release/bundle/macos/HelloTauri.app/Contents/Info.plist
+plutil -p apps/hello-world/src-tauri/target/release/bundle/macos/HelloWorld.app/Contents/Info.plist
 ```
 
 如果看到下面内容，说明协议已经写进 `.app`：
@@ -217,7 +197,7 @@ hello-world
 也可以只搜索关键信息：
 
 ```bash
-plutil -p apps/hello-world/src-tauri/target/release/bundle/macos/HelloTauri.app/Contents/Info.plist | rg "CFBundleURLTypes|CFBundleURLSchemes|hello-world"
+plutil -p apps/hello-world/src-tauri/target/release/bundle/macos/HelloWorld.app/Contents/Info.plist | rg "CFBundleURLTypes|CFBundleURLSchemes|hello-world"
 ```
 
 ## 修改协议名
@@ -231,7 +211,7 @@ demo-app://open
 需要同时改：
 
 ```text
-src/App.tsx
+调用协议的页面或脚本
 apps/hello-world/src-tauri/tauri.conf.json
 docs/custom-protocol.md
 ```
@@ -239,8 +219,8 @@ docs/custom-protocol.md
 对应关系：
 
 ```text
-首页 URL: demo-app://open
+调用 URL: demo-app://open
 Tauri scheme: demo-app
 ```
 
-不要只改一边。首页和 Tauri 配置不一致时，系统无法把首页点击交给应用。
+不要只改一边。调用方和 Tauri 配置不一致时，系统无法把协议地址交给应用。

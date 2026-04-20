@@ -4,7 +4,7 @@ const APP_URL = 'hello-world://open'
 const OPEN_TIMEOUT_MS = 1800
 
 type Platform = 'macos' | 'windows' | 'linux' | 'unknown'
-type OpenState = 'idle' | 'trying' | 'missing'
+type OpenState = 'idle' | 'trying' | 'fallback'
 
 type Installer = {
   platform: Exclude<Platform, 'unknown'>
@@ -113,7 +113,7 @@ export default function App() {
       if (!attemptRef.current || document.visibilityState === 'hidden') return
 
       attemptRef.current = false
-      setOpenState('missing')
+      setOpenState('fallback')
       timeoutRef.current = undefined
     }, OPEN_TIMEOUT_MS)
   }
@@ -145,14 +145,16 @@ export default function App() {
             font: 'inherit',
             opacity: openState === 'trying' ? 0.7 : 1,
           }}
-        >
-          {openState === 'trying' ? '正在打开...' : '进入 Hello World'}
+        > 进入 Hello World
         </button>
 
-        {openState === 'missing' ? (
+        {openState === 'fallback' ? (
           <div style={{ marginTop: 18 }}>
             <p style={{ margin: '0 0 8px' }}>
-              本机还没有安装 Hello World。
+              没有检测到 Hello World 被打开。
+            </p>
+            <p style={{ margin: '0 0 8px' }}>
+              如果浏览器正在询问，请选择打开；如果还没安装，请下载安装包。
             </p>
             <p style={{ margin: '0 0 14px' }}>
               当前系统：{PLATFORM_LABELS[platform]}。请选择对应安装包。
@@ -185,9 +187,7 @@ export default function App() {
                 </a>
               ))}
             </div>
-            <p style={{ margin: '14px 0 0', color: '#555' }}>
-              安装完成后，应用会注册 {APP_URL}，下次就能直接打开。
-            </p>
+          
           </div>
         ) : null}
       </section>

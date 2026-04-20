@@ -1,0 +1,28 @@
+{
+  "name": "hello-world",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "tauri dev",
+    "dev:web": "vite",
+    "build": "tauri build",
+    "build:web": "vite build",
+    "build:mac": "tauri build",
+    "build:win": "tauri build --target x86_64-pc-windows-gnu",
+    "build:linux": "tauri build --target x86_64-unknown-linux-gnu",
+    "clean": "cargo clean --manifest-path src-tauri/Cargo.toml"
+  },
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "typescript": "^5",
+    "vite": "^7"
+  }
+}

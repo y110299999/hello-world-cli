@@ -1,0 +1,28 @@
+{
+  "name": "home-app",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:hello-world": "pnpm -C apps/hello-world run dev",
+    "build": "pnpm -C apps/hello-world run build",
+    "build:home": "vite build",
+    "build:hello-world": "pnpm -C apps/hello-world run build",
+    "build:hello-world:mac": "pnpm -C apps/hello-world run build:mac",
+    "build:hello-world:win": "pnpm -C apps/hello-world run build:win",
+    "build:hello-world:linux": "pnpm -C apps/hello-world run build:linux",
+    "clean:tauri": "cargo clean --manifest-path apps/hello-world/src-tauri/Cargo.toml"
+  },
+  "dependencies": {
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "typescript": "^5",
+    "vite": "^7"
+  }
+}

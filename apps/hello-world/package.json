@@ -9,7 +9,7 @@
     "build": "tauri build",
     "build:web": "vite build",
     "build:mac": "tauri build",
-    "build:win": "tauri build --target x86_64-pc-windows-gnu",
+    "build:win": "tauri build --target x86_64-pc-windows-msvc",
     "build:linux": "tauri build --target x86_64-unknown-linux-gnu",
     "clean": "cargo clean --manifest-path src-tauri/Cargo.toml"
   },

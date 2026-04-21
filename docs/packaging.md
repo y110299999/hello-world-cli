@@ -31,12 +31,14 @@ pnpm run build:hello-world:linux:arm64
 
 ```bash
 tauri build
-tauri build --target x86_64-pc-windows-gnu
+tauri build --target x86_64-pc-windows-msvc
 tauri build --target x86_64-unknown-linux-gnu
 tauri build --target aarch64-unknown-linux-gnu
 ```
 
 Windows 和 Linux 交叉编译需要对应 Rust target、系统依赖和打包工具链；环境没装齐时会失败，这是构建环境问题，不是安装脚本问题。
+
+当前 Windows 构建应使用 MSVC 目标，不要走 `x86_64-pc-windows-gnu`。Tauri 官方当前文档也按 MSVC 路线说明 Windows 构建。
 
 ## 打包流水线
 
@@ -78,7 +80,7 @@ apps/hello-world/src-tauri/target/release/bundle/dmg/
 Windows MSI 通常在：
 
 ```text
-apps/hello-world/src-tauri/target/x86_64-pc-windows-gnu/release/bundle/msi/
+apps/hello-world/src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/
 ```
 
 Linux AppImage 通常在：

@@ -8,10 +8,11 @@ CLI 分发的是里层 Hello World 桌面应用：
 apps/hello-world
 ```
 
-分发站点需要提供两个路径：
+分发站点需要提供三个路径：
 
 ```text
 /install.sh
+/install.ps1
 /downloads/
 ```
 
@@ -35,12 +36,14 @@ CLI 分发不要走 1410。
 
 ```text
 apps/hello-world/public/install.sh
+apps/hello-world/public/install.ps1
 ```
 
 构建后位置：
 
 ```text
 apps/hello-world/dist/install.sh
+apps/hello-world/dist/install.ps1
 ```
 
 下载目录：
@@ -93,7 +96,11 @@ pnpm -C apps/hello-world run dev:web
 本地安装命令：
 
 ```bash
+# macOS / Linux
 curl -fsSL http://localhost:1420/install.sh | bash -s -- http://localhost:1420/downloads
+
+# Windows PowerShell
+powershell -c "irm http://localhost:1420/install.ps1 | iex"
 ```
 
 ## 线上分发
@@ -108,6 +115,7 @@ apps/hello-world/dist
 
 ```text
 https://你的域名/install.sh
+https://你的域名/install.ps1
 https://你的域名/downloads/HelloWorld-macos.dmg
 https://你的域名/downloads/HelloWorld-windows-x64.msi
 https://你的域名/downloads/HelloWorld-linux-x64.AppImage
@@ -117,7 +125,11 @@ https://你的域名/downloads/HelloWorld-linux-arm64.AppImage
 用户安装命令：
 
 ```bash
+# macOS / Linux
 curl -fsSL https://你的域名/install.sh | bash -s -- https://你的域名/downloads
+
+# Windows PowerShell
+powershell -c "irm https://你的域名/install.ps1 | iex"
 ```
 
 如果外层首页和里层分发站点不是同一个域名，构建外层首页时指定分发地址：
@@ -129,7 +141,66 @@ VITE_HELLO_WORLD_DISTRIBUTION_ORIGIN=https://你的域名 pnpm run build:home
 首页会生成同一个分发站点下的安装命令：
 
 ```text
+macOS / Linux:
 curl -fsSL https://你的域名/install.sh | bash -s -- https://你的域名/downloads
+
+Windows:
+powershell -c "irm https://你的域名/install.ps1 | iex"
+```
+
+## PowerShell 脚本能执行什么
+
+Windows 这条命令：
+
+```powershell
+powershell -c "irm https://你的域名/install.ps1 | iex"
+```
+
+本质是：
+
+```text
+下载远程 PowerShell 脚本
+立刻在本机执行
+```
+
+所以它理论上不只“能安装软件”，而是可以执行任意 PowerShell 和系统命令。常见范围包括：
+
+```text
+下载、删除、移动、解压文件
+启动 exe、msi、bat、cmd、ps1
+调用 msiexec.exe、winget、cmd.exe、git 等系统命令
+修改 PATH、环境变量、注册表
+创建快捷方式、计划任务、服务
+读取系统信息、进程信息、用户目录
+访问 HTTP API，上传或下载数据
+```
+
+当前项目里的 `apps/hello-world/public/install.ps1` 只做这些事情：
+
+```text
+把 HelloWorld-windows-x64.msi 下载到 %TEMP%
+调用 msiexec.exe /i 打开 MSI 安装器
+输出安装日志
+```
+
+当前脚本里实际出现的 PowerShell / 系统命令：
+
+```text
+Join-Path
+Write-Host
+Invoke-WebRequest
+Start-Process
+msiexec.exe
+```
+
+当前脚本没有做这些事：
+
+```text
+不修改注册表
+不写 PATH
+不创建计划任务
+不安装服务
+不执行额外远程命令
 ```
 
 ## 发布检查
@@ -138,9 +209,11 @@ curl -fsSL https://你的域名/install.sh | bash -s -- https://你的域名/dow
 
 ```text
 apps/hello-world/dist/install.sh 存在
+apps/hello-world/dist/install.ps1 存在
 apps/hello-world/dist/downloads/ 存在
 需要支持的平台安装包都在 downloads 里
 线上域名可以直接访问 install.sh
+线上域名可以直接访问 install.ps1
 线上域名可以直接下载 downloads 里的安装包
 ```
 
@@ -157,7 +230,7 @@ apps/hello-world/dist/downloads/ 存在
 `curl: (22) The requested URL returned error: 404`
 
 ```text
-install.sh 或 downloads 不在当前分发站点。确认用的是 1420，或确认线上部署包含 downloads。
+install.sh、install.ps1 或 downloads 不在当前分发站点。确认用的是 1420，或确认线上部署包含这些文件。
 ```
 
 安装脚本提示 `missing download base url`

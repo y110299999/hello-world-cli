@@ -1,6 +1,8 @@
 # CLI 分发
 
-这份文档只说明 CLI 怎么分发。安装脚本实现细节见 `docs/cli-implementation.md`，安装包怎么生成见 `docs/packaging.md`。
+这份文档只说明通过命令行安装脚本分发 Hello World 桌面 App。安装包怎么生成见 `docs/packaging.md`。
+
+本地 mock Rust CLI 的说明见 `docs/mock-rust-cli.md`。它和这里的桌面 App 安装脚本不是同一套逻辑。
 
 CLI 分发的是里层 Hello World 桌面应用：
 
@@ -14,6 +16,13 @@ apps/hello-world
 /install.sh
 /install.ps1
 /downloads/
+```
+
+其中：
+
+```text
+install.sh  = macOS / Linux
+install.ps1 = Windows PowerShell
 ```
 
 本地开发时，分发站点是里层应用：

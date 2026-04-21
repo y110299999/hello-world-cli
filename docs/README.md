@@ -9,8 +9,8 @@
 
 - `docs/custom-protocol.md`：自定义协议怎么接入、用了什么技术、怎么验证。
 - `docs/packaging.md`：生成 CLI 分发需要的多系统安装包。
-- `docs/cli-distribution.md`：通过里层应用站点的 `install.sh` 分发安装多系统 App。
-- `docs/mock-rust-cli.md`：本地 mock 的 Rust CLI 包在哪里、怎么安装到本机。
+- `docs/cli-distribution.md`：通过里层应用站点的 `install.sh` / `install.ps1` 分发安装桌面 App。
+- `docs/mock-rust-cli.md`：本地 mock Rust CLI 的包位置、安装原理、Windows 状态和生产分发区别。
 - `docs/README.md`：当前项目边界和常用命令。
 
 ## 目录职责
@@ -20,6 +20,7 @@
   src/                         根目录首页
   apps/hello-world/src/         Hello World 桌面应用页面
   apps/hello-world/src-tauri/   Tauri 桌面壳、打包配置、Rust 入口
+  crates/hello-world-cli/       本地 mock Rust CLI 包
 ```
 
 根目录首页不参与桌面打包。桌面打包只读取 `apps/hello-world`。
@@ -132,6 +133,7 @@ dist/
 apps/hello-world/dist/
 apps/hello-world/src-tauri/gen/
 apps/hello-world/src-tauri/target/
+crates/*/target/
 ```
 
 含义：
@@ -139,6 +141,7 @@ apps/hello-world/src-tauri/target/
 - `dist`：Vite 前端构建产物。
 - `src-tauri/gen`：Tauri 生成的 schema 和权限辅助文件。
 - `src-tauri/target`：Cargo/Rust 编译缓存和 Tauri 打包产物。
+- `crates/*/target`：独立 Rust CLI crate 的编译缓存。
 
 删除后不会影响源码。下次构建会重新生成。
 

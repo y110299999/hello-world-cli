@@ -87,6 +87,10 @@ pnpm run build:hello-world
 pnpm run prepare:cli
 ```
 
+`prepare:cli` 使用 Node 脚本实现，Windows 上可以直接执行，不需要额外安装 bash。
+
+本地 Windows 安装前一定要先执行这一步。`install.ps1` 会去 `/downloads/HelloWorld-windows-x64.msi` 拉取 MSI；如果没有执行 `pnpm run prepare:cli`，`apps/hello-world/public/downloads/` 和 `apps/hello-world/dist/downloads/` 通常还没有这个文件。
+
 启动里层 Web 服务：
 
 ```bash
@@ -100,6 +104,15 @@ pnpm -C apps/hello-world run dev:web
 curl -fsSL http://localhost:1420/install.sh | bash -s -- http://localhost:1420/downloads
 
 # Windows PowerShell
+powershell -c "irm http://localhost:1420/install.ps1 | iex"
+```
+
+本地调试 Windows 安装的完整顺序：
+
+```powershell
+pnpm run build:hello-world
+pnpm run prepare:cli
+pnpm -C apps/hello-world run dev:web
 powershell -c "irm http://localhost:1420/install.ps1 | iex"
 ```
 
@@ -231,6 +244,12 @@ apps/hello-world/dist/downloads/ 存在
 
 ```text
 install.sh、install.ps1 或 downloads 不在当前分发站点。确认用的是 1420，或确认线上部署包含这些文件。
+```
+
+Windows PowerShell 安装时报下载失败或 404
+
+```text
+本地调试时先运行 pnpm run prepare:cli，确认 apps/hello-world/public/downloads/ 或 apps/hello-world/dist/downloads/ 里已经有 HelloWorld-windows-x64.msi。
 ```
 
 安装脚本提示 `missing download base url`

@@ -50,6 +50,15 @@ curl -fsSL http://localhost:1420/install.sh | bash -s -- http://localhost:1420/d
 
 这个命令会按系统下载 `/downloads` 下对应安装包。安装包需要由部署环境提供，首页和安装脚本都不负责生成安装包。
 
+本地调试 Windows 安装时，需要先生成 Windows MSI，再准备 CLI 分发目录：
+
+```powershell
+pnpm run build:hello-world
+pnpm run prepare:cli
+```
+
+`prepare:cli` 使用 Node 脚本实现，Windows 上可以直接执行，不需要额外安装 bash。
+
 ## 常用命令
 
 开发首页：
@@ -75,6 +84,14 @@ pnpm run build:home
 ```bash
 pnpm run build:hello-world
 ```
+
+准备 CLI 分发下载目录：
+
+```bash
+pnpm run prepare:cli
+```
+
+这条命令会把已生成的 DMG、MSI、AppImage 复制到 `/downloads` 对应目录；Windows 也直接运行这条命令即可。
 
 单独打包平台目标：
 

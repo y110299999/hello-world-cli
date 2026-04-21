@@ -100,6 +100,8 @@ apps/hello-world/dist/downloads/HelloWorld-linux-x64.AppImage
 apps/hello-world/dist/downloads/HelloWorld-linux-arm64.AppImage
 ```
 
+这个命令使用跨平台 Node 脚本实现，Windows 上不需要额外安装 bash。
+
 没有生成的平台会跳过。这样可以在不同系统或 CI job 中分别打包，再统一发布 `dist`。
 
 ## 根站点构建

@@ -19,7 +19,6 @@ DOWNLOAD_BASE_URL="${DOWNLOAD_BASE_URL%/}"
 MACOS_DMG_URL="${DOWNLOAD_BASE_URL}/HelloWorld-macos.dmg"
 LINUX_X64_APPIMAGE_URL="${DOWNLOAD_BASE_URL}/HelloWorld-linux-x64.AppImage"
 LINUX_ARM64_APPIMAGE_URL="${DOWNLOAD_BASE_URL}/HelloWorld-linux-arm64.AppImage"
-WINDOWS_X64_MSI_URL="${DOWNLOAD_BASE_URL}/HelloWorld-windows-x64.msi"
 
 LINUX_INSTALL_DIR="${HOME}/.local/opt/${APP_COMMAND}"
 LINUX_BIN_DIR="${HOME}/.local/bin"
@@ -80,7 +79,7 @@ detect_os() {
       printf 'linux\n'
       ;;
     MINGW* | MSYS* | CYGWIN*)
-      printf 'windows\n'
+      die "Windows is not supported by install.sh. Use the PowerShell installer instead."
       ;;
     *)
       die "unsupported operating system: $(uname -s)"
@@ -225,25 +224,6 @@ install_linux() {
   esac
 }
 
-install_windows() {
-  TMP_DIR="$(mktemp -d)"
-
-  local msi_path="${TMP_DIR}/${APP_NAME}.msi"
-  download "${WINDOWS_X64_MSI_URL}" "${msi_path}"
-
-  if command -v cygpath >/dev/null 2>&1; then
-    msi_path="$(cygpath -w "${msi_path}")"
-  fi
-
-  if command -v msiexec.exe >/dev/null 2>&1; then
-    log "Opening Windows installer"
-    msiexec.exe /i "${msi_path}"
-    return
-  fi
-
-  die "downloaded MSI to ${msi_path}, but msiexec.exe was not found"
-}
-
 main() {
   case "$(detect_os)" in
     macos)
@@ -252,11 +232,8 @@ main() {
     linux)
       install_linux
       ;;
-    windows)
-      install_windows
-      ;;
     wsl)
-      die "WSL is not supported for desktop installation. Run this installer from Git Bash/MSYS/Cygwin on Windows, or download ${WINDOWS_X64_MSI_URL}"
+      die "WSL is not supported for desktop installation. Use the Windows PowerShell installer instead."
       ;;
   esac
 }

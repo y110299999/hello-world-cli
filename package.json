@@ -13,6 +13,7 @@
     "build:hello-world:win": "pnpm -C apps/hello-world run build:win",
     "build:hello-world:linux": "pnpm -C apps/hello-world run build:linux",
     "prepare:cli": "node scripts/prepare-cli-distribution.mjs",
+    "install:mock-cli": "cargo install --path crates/hello-world-cli --force",
     "clean:tauri": "cargo clean --manifest-path apps/hello-world/src-tauri/Cargo.toml"
   },
   "dependencies": {

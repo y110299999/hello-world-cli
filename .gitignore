@@ -9,3 +9,4 @@ apps/*/public/downloads
 apps/*/src-tauri/gen
 src-tauri/target
 apps/*/src-tauri/target
+crates/*/target

@@ -10,6 +10,7 @@
 - `docs/custom-protocol.md`：自定义协议怎么接入、用了什么技术、怎么验证。
 - `docs/packaging.md`：生成 CLI 分发需要的多系统安装包。
 - `docs/cli-distribution.md`：通过里层应用站点的 `install.sh` 分发安装多系统 App。
+- `docs/mock-rust-cli.md`：本地 mock 的 Rust CLI 包在哪里、怎么安装到本机。
 - `docs/README.md`：当前项目边界和常用命令。
 
 ## 目录职责
@@ -92,6 +93,14 @@ pnpm run prepare:cli
 ```
 
 这条命令会把已生成的 DMG、MSI、AppImage 复制到 `/downloads` 对应目录；Windows 也直接运行这条命令即可。
+
+安装本地 mock Rust CLI：
+
+```bash
+pnpm run install:mock-cli
+```
+
+这条命令会执行 `cargo install --path crates/hello-world-cli --force`，把 mock CLI 安装到当前用户的 Cargo bin 目录，通常是 `~/.cargo/bin`。
 
 单独打包平台目标：
 

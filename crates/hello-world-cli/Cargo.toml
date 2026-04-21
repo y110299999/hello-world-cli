@@ -1,0 +1,10 @@
+[package]
+name = "hello-world-cli"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.77.2"
+description = "Mock Rust CLI package for local Hello World CLI distribution testing"
+
+[[bin]]
+name = "hello-world-cli"
+path = "src/main.rs"

@@ -22,19 +22,26 @@ const toPosixPath = (value) => value.split(path.sep).join('/')
 const isAppImage = (value) => value.endsWith('.AppImage')
 const isGenericLinuxAppImage = (value) =>
   value.startsWith('release/bundle/appimage/') && isAppImage(value)
+const isNativeBundleFile = (value, bundleDir, extension) =>
+  value.startsWith(`release/bundle/${bundleDir}/`) &&
+  value.endsWith(extension)
+const isTargetBundleFile = (value, bundleDir, extension) =>
+  value.includes(`/release/bundle/${bundleDir}/`) && value.endsWith(extension)
 
 const rules = [
   {
     label: 'macOS DMG',
     outputName: 'HelloWorld-macos.dmg',
     matches: (value) =>
-      value.includes('/release/bundle/dmg/') && value.endsWith('.dmg'),
+      isNativeBundleFile(value, 'dmg', '.dmg') ||
+      isTargetBundleFile(value, 'dmg', '.dmg'),
   },
   {
     label: 'Windows x64 MSI',
     outputName: 'HelloWorld-windows-x64.msi',
     matches: (value) =>
-      value.includes('/release/bundle/msi/') && value.endsWith('.msi'),
+      isNativeBundleFile(value, 'msi', '.msi') ||
+      isTargetBundleFile(value, 'msi', '.msi'),
   },
   {
     label: 'Linux x64 AppImage',

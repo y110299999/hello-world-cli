@@ -8,9 +8,7 @@
 ## 文档目录
 
 - `docs/custom-protocol.md`：自定义协议怎么接入、用了什么技术、怎么验证。
-- `docs/packaging.md`：生成 CLI 分发需要的多系统安装包。
-- `docs/cli-distribution.md`：通过里层应用站点的 `install.sh` / `install.ps1` 分发安装桌面 App。
-- `docs/mock-rust-cli.md`：本地 mock Rust CLI 的包位置、安装原理、Windows 状态和生产分发区别。
+- `docs/mock-cli.md`：当前 mock CLI 的无 cargo 安装方式。
 - `docs/README.md`：当前项目边界和常用命令。
 
 ## 目录职责
@@ -20,7 +18,7 @@
   src/                         根目录首页
   apps/hello-world/src/         Hello World 桌面应用页面
   apps/hello-world/src-tauri/   Tauri 桌面壳、打包配置、Rust 入口
-  crates/hello-world-cli/       本地 mock Rust CLI 包
+  crates/hello-world-cli/       mock CLI 的 Rust 源码
 ```
 
 根目录首页不参与桌面打包。桌面打包只读取 `apps/hello-world`。
@@ -44,22 +42,13 @@ OPEN_TIMEOUT_MS = 1000
 
 这里检测的是“页面有没有切走”，不是系统级安装状态。
 
-安装命令也在 `src/App.tsx`。本地开发时，CLI 分发走里层应用地址：
+安装命令也在 `src/App.tsx`。本地开发时，mock CLI 安装脚本走里层应用地址：
 
 ```text
-curl -fsSL http://localhost:1420/install.sh | bash -s -- http://localhost:1420/downloads
+curl -fsSL http://localhost:1420/install-cli.sh | bash -s -- http://localhost:1420/downloads
 ```
 
-这个命令会按系统下载 `/downloads` 下对应安装包。安装包需要由部署环境提供，首页和安装脚本都不负责生成安装包。
-
-本地调试 Windows 安装时，需要先生成 Windows MSI，再准备 CLI 分发目录：
-
-```powershell
-pnpm run build:hello-world
-pnpm run prepare:cli
-```
-
-`prepare:cli` 使用 Node 脚本实现，Windows 上可以直接执行，不需要额外安装 bash。
+Windows 会显示 PowerShell 版本的 `install-cli.ps1`。这些安装脚本会下载并安装预编译的 mock `hello-world-cli`，不要求普通用户有 cargo。
 
 ## 常用命令
 
@@ -87,21 +76,21 @@ pnpm run build:home
 pnpm run build:hello-world
 ```
 
-准备 CLI 分发下载目录：
+准备 mock CLI 安装脚本：
 
 ```bash
 pnpm run prepare:cli
 ```
 
-这条命令会把已生成的 DMG、MSI、AppImage 复制到 `/downloads` 对应目录；Windows 也直接运行这条命令即可。
+这条命令会把已经存在的 mock CLI Rust binary 复制到 `apps/hello-world/public/downloads` 和 `apps/hello-world/dist/downloads`，供安装脚本下载。
 
-安装本地 mock Rust CLI：
+安装本地 mock CLI：
 
 ```bash
 pnpm run install:mock-cli
 ```
 
-这条命令会执行 `cargo install --path crates/hello-world-cli --force`，把 mock CLI 安装到当前用户的 Cargo bin 目录，通常是 `~/.cargo/bin`。
+这条命令不会调用 cargo。它会把已经存在的 mock CLI Rust binary 安装到当前用户的 bin 目录，默认是 `~/.local/bin`。
 
 单独打包平台目标：
 
@@ -141,7 +130,7 @@ crates/*/target/
 - `dist`：Vite 前端构建产物。
 - `src-tauri/gen`：Tauri 生成的 schema 和权限辅助文件。
 - `src-tauri/target`：Cargo/Rust 编译缓存和 Tauri 打包产物。
-- `crates/*/target`：独立 Rust CLI crate 的编译缓存。
+- `crates/*/target`：mock CLI 的 Rust 编译缓存。
 
 删除后不会影响源码。下次构建会重新生成。
 

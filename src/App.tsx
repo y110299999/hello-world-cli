@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 const APP_URL = 'hello-world://open'
+const DEV_DISTRIBUTION_ORIGIN = 'http://localhost:1420'
 const OPEN_TIMEOUT_MS = 1000
 
 type InstallCommand = {
@@ -13,15 +14,16 @@ function trimTrailingSlash(value: string) {
 }
 
 const DISTRIBUTION_ORIGIN = trimTrailingSlash(
-  import.meta.env.VITE_HELLO_WORLD_DISTRIBUTION_ORIGIN
+  import.meta.env.VITE_HELLO_WORLD_DISTRIBUTION_ORIGIN ||
+    DEV_DISTRIBUTION_ORIGIN
 )
 const INSTALL_SCRIPT_URL = trimTrailingSlash(
   import.meta.env.VITE_HELLO_WORLD_INSTALL_SCRIPT_URL ||
-    `${DISTRIBUTION_ORIGIN}/install.sh`
+    `${DISTRIBUTION_ORIGIN}/install-cli.sh`
 )
 const WINDOWS_INSTALL_SCRIPT_URL = trimTrailingSlash(
   import.meta.env.VITE_HELLO_WORLD_WINDOWS_INSTALL_SCRIPT_URL ||
-    `${DISTRIBUTION_ORIGIN}/install.ps1`
+    `${DISTRIBUTION_ORIGIN}/install-cli.ps1`
 )
 const DOWNLOAD_BASE_URL = trimTrailingSlash(
   import.meta.env.VITE_HELLO_WORLD_DOWNLOAD_BASE_URL ||
@@ -49,7 +51,7 @@ function getInstallCommand(): InstallCommand {
   if (isWindowsClient()) {
     return {
       description: '在 PowerShell 运行安装命令后再试。',
-      command: `powershell -c "irm ${WINDOWS_INSTALL_SCRIPT_URL} | iex"`,
+      command: `powershell -c "$env:HELLO_WORLD_CLI_DOWNLOAD_BASE_URL='${DOWNLOAD_BASE_URL}'; irm ${WINDOWS_INSTALL_SCRIPT_URL} | iex"`,
     }
   }
 

@@ -1,133 +1,68 @@
-import { copyFile, mkdir, readdir } from 'node:fs/promises'
-import { platform, arch } from 'node:os'
+import { access, copyFile, mkdir } from 'node:fs/promises'
+import { constants } from 'node:fs'
+import { arch, platform } from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const targetDir = path.join(
-  rootDir,
-  'apps',
-  'hello-world',
-  'src-tauri',
-  'target'
-)
-const outputDirs = [
-  path.join(rootDir, 'apps', 'hello-world', 'dist', 'downloads'),
-  path.join(rootDir, 'apps', 'hello-world', 'public', 'downloads'),
-]
-const hostPlatform = platform()
-const hostArch = arch()
+const cliName = 'hello-world-cli'
+const isWindows = platform() === 'win32'
+const platformName = {
+  darwin: 'macos',
+  linux: 'linux',
+  win32: 'windows',
+}[platform()]
+const archName = {
+  arm64: 'arm64',
+  x64: 'x64',
+}[arch()]
 
-const toPosixPath = (value) => value.split(path.sep).join('/')
-const isAppImage = (value) => value.endsWith('.AppImage')
-const isGenericLinuxAppImage = (value) =>
-  value.startsWith('release/bundle/appimage/') && isAppImage(value)
-const isNativeBundleFile = (value, bundleDir, extension) =>
-  value.startsWith(`release/bundle/${bundleDir}/`) &&
-  value.endsWith(extension)
-const isTargetBundleFile = (value, bundleDir, extension) =>
-  value.includes(`/release/bundle/${bundleDir}/`) && value.endsWith(extension)
-
-const rules = [
-  {
-    label: 'macOS DMG',
-    outputName: 'HelloWorld-macos.dmg',
-    matches: (value) =>
-      isNativeBundleFile(value, 'dmg', '.dmg') ||
-      isTargetBundleFile(value, 'dmg', '.dmg'),
-  },
-  {
-    label: 'Windows x64 MSI',
-    outputName: 'HelloWorld-windows-x64.msi',
-    matches: (value) =>
-      isNativeBundleFile(value, 'msi', '.msi') ||
-      isTargetBundleFile(value, 'msi', '.msi'),
-  },
-  {
-    label: 'Linux x64 AppImage',
-    outputName: 'HelloWorld-linux-x64.AppImage',
-    matches: (value) =>
-      (value.includes(
-        '/x86_64-unknown-linux-gnu/release/bundle/appimage/'
-      ) &&
-        isAppImage(value)) ||
-      (hostPlatform === 'linux' &&
-        hostArch === 'x64' &&
-        isGenericLinuxAppImage(value)),
-  },
-  {
-    label: 'Linux arm64 AppImage',
-    outputName: 'HelloWorld-linux-arm64.AppImage',
-    matches: (value) =>
-      (value.includes(
-        '/aarch64-unknown-linux-gnu/release/bundle/appimage/'
-      ) &&
-        isAppImage(value)) ||
-      (hostPlatform === 'linux' &&
-        hostArch === 'arm64' &&
-        isGenericLinuxAppImage(value)),
-  },
-]
-
-async function listFiles(dir) {
-  let entries
-
-  try {
-    entries = await readdir(dir, { withFileTypes: true })
-  } catch (error) {
-    if (error?.code === 'ENOENT') {
-      return []
-    }
-
-    throw error
-  }
-
-  const files = []
-
-  for (const entry of entries) {
-    const fullPath = path.join(dir, entry.name)
-
-    if (entry.isDirectory()) {
-      files.push(...(await listFiles(fullPath)))
-      continue
-    }
-
-    if (entry.isFile()) {
-      files.push(fullPath)
-    }
-  }
-
-  return files
-}
-
-async function copyLatest({ label, outputName, matches }, files) {
-  const sourcePath = files
-    .filter((file) => matches(toPosixPath(path.relative(targetDir, file))))
-    .sort((a, b) => a.localeCompare(b))
-    .at(-1)
-
-  if (!sourcePath) {
-    console.log(`Skipped ${label}: no artifact found`)
-    return 0
-  }
-
-  for (const outputDir of outputDirs) {
-    await mkdir(outputDir, { recursive: true })
-    await copyFile(sourcePath, path.join(outputDir, outputName))
-  }
-
-  console.log(`Prepared ${label}: ${path.join(outputDirs[0], outputName)}`)
-  return 1
-}
-
-const files = await listFiles(targetDir)
-let copiedCount = 0
-
-for (const rule of rules) {
-  copiedCount += await copyLatest(rule, files)
-}
-
-if (copiedCount === 0) {
-  console.error(`error: no distribution artifacts found in ${targetDir}`)
+if (!platformName || !archName) {
+  console.error(`error: unsupported platform: ${platform()}-${arch()}`)
   process.exit(1)
+}
+
+const binaryName = isWindows ? `${cliName}.exe` : cliName
+const outputName = `${cliName}-${platformName}-${archName}${
+  isWindows ? '.exe' : ''
+}`
+const sourcePath =
+  process.env.HELLO_WORLD_CLI_BINARY ||
+  path.join(rootDir, 'crates', cliName, 'target', 'release', binaryName)
+const outputDirs = [
+  path.join(rootDir, 'apps', 'hello-world', 'public', 'downloads'),
+  path.join(rootDir, 'apps', 'hello-world', 'dist', 'downloads'),
+]
+const publicFiles = ['install-cli.sh', 'install-cli.ps1']
+
+async function exists(filePath) {
+  try {
+    await access(filePath, constants.R_OK)
+    return true
+  } catch {
+    return false
+  }
+}
+
+if (!(await exists(sourcePath))) {
+  console.error(`error: prebuilt mock CLI binary not found: ${sourcePath}`)
+  console.error('build it first, or set HELLO_WORLD_CLI_BINARY=/path/to/binary')
+  process.exit(1)
+}
+
+for (const outputDir of outputDirs) {
+  await mkdir(outputDir, { recursive: true })
+  await copyFile(sourcePath, path.join(outputDir, outputName))
+  console.log(`Prepared mock CLI binary: ${path.join(outputDir, outputName)}`)
+}
+
+const distDir = path.join(rootDir, 'apps', 'hello-world', 'dist')
+
+if (await exists(distDir)) {
+  for (const file of publicFiles) {
+    await copyFile(
+      path.join(rootDir, 'apps', 'hello-world', 'public', file),
+      path.join(distDir, file)
+    )
+  }
 }
